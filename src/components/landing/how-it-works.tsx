@@ -16,7 +16,7 @@ const STEPS = [
     icon: Sparkles,
     title: "AI Generates Tokens",
     description:
-      "Claude analyzes your input and creates a complete, WCAG-compliant design token set with full color scales.",
+      "Claude analyzes your input and creates a WCAG-aware token set with full color scales.",
   },
   {
     number: "03",

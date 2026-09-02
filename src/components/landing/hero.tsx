@@ -145,6 +145,11 @@ export function Hero() {
   }, [presets, activePresetId, setPreset]);
 
   const toggleCycling = () => {
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      const idx = presets.findIndex((p) => p.id === activePresetId);
+      setPreset(presets[(idx + 1) % presets.length].id);
+      return;
+    }
     if (cycling) {
       if (intervalRef.current) clearInterval(intervalRef.current);
       intervalRef.current = null;
@@ -186,7 +191,7 @@ export function Hero() {
               backgroundColor: "var(--card)",
             }}
           >
-            AI-Powered Design Token Generator
+            AI design tokens · public beta
           </span>
         </motion.div>
 

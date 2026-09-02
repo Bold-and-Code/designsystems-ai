@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
+import { Toaster } from "sonner";
 import { ThemeTokenProvider } from "@/providers/theme-token-provider";
+import { SITE_DESCRIPTION, SITE_NAME, SITE_TAGLINE, getSiteUrl } from "@/lib/site";
 import "./globals.css";
 
 const inter = Inter({
@@ -10,9 +12,12 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "DesignSystems.ai — AI-Powered Design System Generator",
-  description:
-    "Generate production-ready design systems from your brand identity. Export to CSS, Tailwind, DTCG tokens, and more. Your brand. Your design system. In minutes.",
+  metadataBase: new URL(getSiteUrl()),
+  title: {
+    default: `${SITE_NAME} — ${SITE_TAGLINE}`,
+    template: `%s — ${SITE_NAME}`,
+  },
+  description: SITE_DESCRIPTION,
   keywords: [
     "design system",
     "design tokens",
@@ -23,6 +28,16 @@ export const metadata: Metadata = {
     "brand",
     "generator",
   ],
+  openGraph: {
+    title: `${SITE_NAME} — ${SITE_TAGLINE}`,
+    description: SITE_DESCRIPTION,
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: `${SITE_NAME} — ${SITE_TAGLINE}`,
+    description: SITE_DESCRIPTION,
+  },
 };
 
 export default function RootLayout({
@@ -34,6 +49,16 @@ export default function RootLayout({
     <html lang="en" className={`${inter.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col">
         <ThemeTokenProvider>{children}</ThemeTokenProvider>
+        <Toaster
+          position="bottom-right"
+          toastOptions={{
+            style: {
+              background: "var(--card)",
+              color: "var(--foreground)",
+              border: "1px solid var(--border)",
+            },
+          }}
+        />
       </body>
     </html>
   );

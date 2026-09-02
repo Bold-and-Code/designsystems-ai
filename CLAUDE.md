@@ -6,7 +6,7 @@ AI-powered design system generator SaaS. Users input their brand identity (guide
 
 **Repo**: Bold-and-Code org, `designsystems-ai`
 **Domain**: TBD (finding a catchy name, not `designsystems.ai`)
-**Status**: MVP Week 1-3 complete. Landing page + generator page built with mock generation.
+**Status**: MVP P1-P4 COMPLETE (2026-03-23). AI generation, export pipeline, color engine, extraction all wired. Auth/persistence/payments left for CTO handoff.
 
 ## Development Commands
 
@@ -24,9 +24,10 @@ AI-powered design system generator SaaS. Users input their brand identity (guide
 - **shadcn/ui** components (not yet initialized — to be added)
 - **framer-motion** — animations
 - **lucide-react** — icons
-- **culori** — color manipulation (installed, not yet used)
-- **zod** — schema validation (installed, not yet used)
-- **Style Dictionary v4** — NOT YET INSTALLED, needed for export pipeline
+- **culori** — color manipulation (installed, type declarations in src/types/culori.d.ts)
+- **zod** — schema validation (used for AI output validation)
+- **@anthropic-ai/sdk** — Claude API for token generation
+- **jszip** — client-side ZIP packaging for exports
 
 ## Architecture
 
@@ -87,9 +88,12 @@ src/
 │   ├── layout.tsx              # Root layout + ThemeTokenProvider
 │   ├── page.tsx                # Landing page (assembles sections)
 │   ├── globals.css             # Tailwind v4 @theme + CSS vars
-│   └── generator/
-│       ├── layout.tsx          # Three-panel layout + mobile tabs
-│       └── page.tsx            # Generator state management + mock generation
+│   ├── generator/
+│   │   ├── layout.tsx          # Three-panel layout + mobile tabs
+│   │   └── page.tsx            # Generator state management + real API call
+│   └── api/
+│       ├── generate/route.ts   # Claude API → structured tokens → color engine → full DesignTokens
+│       └── extract-url/route.ts # Server-side URL color/font extraction
 ├── components/
 │   ├── landing/
 │   │   ├── header.tsx          # Sticky nav + ThemeSwitcher
@@ -101,16 +105,30 @@ src/
 │   │   ├── cta-banner.tsx      # CTA section
 │   │   └── footer.tsx
 │   └── generator/
-│       ├── chat-panel.tsx      # Guided 7-step question flow
-│       ├── preview-panel.tsx   # Live component preview (idle/generating/complete)
-│       └── export-panel.tsx    # Format selection + download
+│       ├── chat-panel.tsx      # 7-step questions + URL/logo extraction
+│       ├── preview-panel.tsx   # 20+ section comprehensive preview
+│       └── export-panel.tsx    # Format selection + ZIP download
 ├── lib/
 │   ├── utils.ts                # cn() utility
-│   └── tokens/
-│       ├── types.ts            # Core DesignTokens interfaces (DTCG-aligned)
-│       ├── presets.ts          # 8 pre-built design systems
-│       ├── defaults.ts         # Shared default values (spacing, animation, etc.)
-│       └── apply-theme.ts      # CSS var injection + Google Font loader
+│   ├── ai/
+│   │   ├── schema.ts           # Zod schema + JSON schema for Claude tool_use
+│   │   └── prompt.ts           # System prompt + user prompt builder
+│   ├── tokens/
+│   │   ├── types.ts            # Complete DesignTokens (20+ token categories)
+│   │   ├── presets.ts          # 8 pre-built design systems
+│   │   ├── defaults.ts         # All default values (spacing, animation, components, typography usage, etc.)
+│   │   ├── apply-theme.ts      # CSS var injection + Google Font loader
+│   │   └── color-utils.ts      # Color scale generation + WCAG contrast + color-blind sim
+│   └── export/
+│       ├── dtcg-formatter.ts   # W3C DTCG JSON format
+│       ├── css-formatter.ts    # CSS Custom Properties
+│       ├── tailwind-formatter.ts # Tailwind v4 @theme block
+│       ├── flat-json-formatter.ts # Flat key-value JSON
+│       └── zip-builder.ts      # Client-side JSZip + browser download
+├── extract/
+│   └── image-colors.ts         # Client-side Canvas API color extraction
+├── types/
+│   └── culori.d.ts             # Type declarations for culori
 ├── providers/
 │   └── theme-token-provider.tsx
 └── hooks/                      # (empty, to be used)
@@ -126,49 +144,53 @@ src/
 - Export Formats (4 tabs with real code blocks that update with theme)
 - CTA Banner + Footer
 
-### Generator Page (/generator)
+### Generator Page (/generator) — FULLY WIRED
 - Three-panel layout: Input (380px) | Preview (flex) | Export (340px)
 - Mobile: tab bar switches between panels
-- Left panel: 7 guided question steps (industry, mood, color, typography, roundedness, references, context)
-- Center panel: 3 states (idle placeholder, generating spinner, complete with full preview)
-- Right panel: format selection, code preview, token stats, download button
-- **Currently uses MOCK generation** — picks a random preset after 2.5s delay
+- Left panel: 7 guided question steps + URL extraction + logo upload
+- Center panel: 20+ section comprehensive preview (colors, typography, components, accessibility, spacing, etc.)
+- Right panel: format selection, code preview, token stats, real ZIP download
+- **Real AI generation** via Claude Sonnet 4 (tool_use structured output)
+- Falls back to mock if API key is missing
 
-## What Needs to Be Built Next
+### AI Generation Pipeline
+- Claude generates reduced schema (8 color anchors, semantic colors, fonts, radius)
+- Server expands to full DesignTokens: color engine generates 50-950 scales, WCAG contrast auto-fix, defaults for spacing/animation/components/typography usage
+- Zod validation on AI output
 
-### Priority 1: Wire Real Generation
-- `src/app/api/generate/route.ts` — Claude API route with structured output
-- `src/lib/ai/prompt.ts` — System prompt for token generation
-- `src/lib/ai/schema.ts` — Zod schema for DesignTokens structured output
-- Environment variable: `ANTHROPIC_API_KEY`
-- Install: `@anthropic-ai/sdk`
+### Export Pipeline
+- 4 formats: DTCG JSON, CSS Variables, Tailwind v4, Flat JSON
+- All 20+ token categories exported in every format
+- Client-side JSZip with README + quickstart.md (framework guides)
 
-### Priority 2: Export Pipeline
-- `src/app/api/export/route.ts` — Token transformation + ZIP packaging
-- `src/lib/export/dtcg-formatter.ts` — DTCG JSON output
-- `src/lib/export/css-formatter.ts` — CSS custom properties
-- `src/lib/export/tailwind-formatter.ts` — Tailwind v4 @theme block
-- `src/lib/export/flat-json-formatter.ts`
-- `src/lib/export/zip-builder.ts` — JSZip packaging
-- Install: `style-dictionary`, `jszip`, `file-saver`
+### Color Engine
+- RGB mixing for 50-950 scale generation (hue-stable)
+- WCAG AA contrast checking + auto-fix
+- Color blindness simulation utility
 
-### Priority 3: Color Engine
-- `src/lib/tokens/color-utils.ts` — Culori integration
-- Generate full 50-950 scales from primary color anchors (Oklch interpolation)
-- WCAG AA contrast validation + auto-fix
-- Color-blind simulation
+### Extraction
+- URL: server-side fetch + HTML/CSS parsing (colors + fonts)
+- Logo: client-side Canvas API color extraction
 
-### Priority 4: Extraction
-- `src/app/api/extract-url/route.ts` — Playwright headless browser
-- `src/app/api/extract-image/route.ts` — Color Thief extraction
-- Install: `playwright`, `colorthief`, `sharp`
+### Token Categories Generated (20+)
+Colors (8x11 + 19 semantic), typography (families, scale, weights), typography usage rules (14 roles), component tokens (button, card, input, badge, avatar), border radius, shadows, spacing, animation, breakpoints, z-index, opacity, border-width, letter-spacing, line-height, focus config, section spacing (responsive)
 
-### Future Phases
-- Auth (Clerk), persistence (Supabase), payments (Stripe)
+## What Needs to Be Built (CTO Handoff)
+
+### Infrastructure
+- Auth (Clerk)
+- Persistence/database (Supabase)
+- Payments (Stripe) — see pricing in research docs
+- Deployment (Vercel)
+- Domain setup
+
+### Enhancements
 - Dark mode variant generation
-- More export formats (SCSS, Swift, Kotlin, Figma)
-- Token fine-tuning editor
+- More export formats (SCSS, Swift, Kotlin, Figma Variables, JS/TS modules)
+- Token fine-tuning editor (post-generation editing UI)
 - API access for programmatic generation
+- shadcn/ui component library integration
+- Shareable HTML style guide page
 
 ## Key Patterns
 

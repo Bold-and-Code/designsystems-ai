@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import {
   ChevronDown,
   ChevronRight,
@@ -9,8 +9,11 @@ import {
   ImageIcon,
   Pencil,
   RotateCcw,
+  Upload,
+  AlertCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { extractColorsFromImage } from "@/lib/extract/image-colors";
 
 export interface UserInputs {
   industry: string;
@@ -20,6 +23,8 @@ export interface UserInputs {
   roundedness: string;
   reference: string;
   context: string;
+  extractedColors?: string[];
+  extractedFonts?: string[];
 }
 
 const EMPTY_INPUTS: UserInputs = {
@@ -82,14 +87,27 @@ const INPUT_METHODS: InputMethod[] = [
 interface ChatPanelProps {
   generationState: "idle" | "generating" | "complete";
   onGenerate: (inputs: UserInputs) => void;
+  generationError?: string | null;
 }
 
-export function ChatPanel({ generationState, onGenerate }: ChatPanelProps) {
+export function ChatPanel({ generationState, onGenerate, generationError }: ChatPanelProps) {
   const [inputMethod, setInputMethod] = useState<"scratch" | "url" | "logo">(
     "scratch"
   );
   const [inputs, setInputs] = useState<UserInputs>(EMPTY_INPUTS);
   const [expandedStep, setExpandedStep] = useState<number>(1);
+
+  // URL extraction state
+  const [urlValue, setUrlValue] = useState("");
+  const [extractingUrl, setExtractingUrl] = useState(false);
+  const [urlExtracted, setUrlExtracted] = useState(false);
+
+  // Logo extraction state
+  const [extractingLogo, setExtractingLogo] = useState(false);
+  const [logoExtracted, setLogoExtracted] = useState(false);
+  const [logoFileName, setLogoFileName] = useState<string | null>(null);
+  const [extractError, setExtractError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const update = (key: keyof UserInputs, value: string | string[]) =>
     setInputs((prev) => ({ ...prev, [key]: value }));
@@ -130,7 +148,66 @@ export function ChatPanel({ generationState, onGenerate }: ChatPanelProps) {
   };
 
   const handleGenerate = () => {
-    onGenerate(inputs);
+    const brandColor = /^#[0-9a-fA-F]{6}$/.test(inputs.brandColor)
+      ? inputs.brandColor
+      : "";
+    onGenerate({ ...inputs, brandColor });
+  };
+
+  const handleExtractUrl = async () => {
+    if (!urlValue) return;
+    setExtractingUrl(true);
+    setExtractError(null);
+    try {
+      const res = await fetch("/api/extract-url", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: urlValue }),
+      });
+      const payload = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(payload.error || "Could not extract from that URL");
+      }
+      setInputs((prev) => ({
+        ...prev,
+        extractedColors: payload.colors,
+        extractedFonts: payload.fonts,
+        brandColor: payload.colors?.[0] || prev.brandColor,
+      }));
+      setUrlExtracted(true);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "URL extraction failed";
+      setExtractError(message);
+      setUrlExtracted(false);
+    } finally {
+      setExtractingUrl(false);
+    }
+  };
+
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setLogoFileName(file.name);
+    setExtractingLogo(true);
+    setExtractError(null);
+    try {
+      const colors = await extractColorsFromImage(file);
+      if (!colors.length) {
+        throw new Error("No brand colors found in that image");
+      }
+      setInputs((prev) => ({
+        ...prev,
+        extractedColors: colors,
+        brandColor: colors[0] || prev.brandColor,
+      }));
+      setLogoExtracted(true);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Logo extraction failed";
+      setExtractError(message);
+      setLogoExtracted(false);
+    } finally {
+      setExtractingLogo(false);
+    }
   };
 
   return (
@@ -181,20 +258,52 @@ export function ChatPanel({ generationState, onGenerate }: ChatPanelProps) {
             >
               Website URL
             </label>
-            <input
-              type="url"
-              placeholder="https://example.com"
-              className="w-full px-3 py-2 text-sm rounded-md border outline-none transition-colors"
-              style={{
-                backgroundColor: "var(--background)",
-                borderColor: "var(--border)",
-                color: "var(--foreground)",
-                borderRadius: "var(--radius-sm)",
-              }}
-            />
-            <p className="text-[10px] mt-1.5" style={{ color: "var(--muted-foreground)" }}>
-              We'll extract colors, fonts, and style patterns.
-            </p>
+            <div className="flex gap-2">
+              <input
+                type="url"
+                placeholder="https://example.com"
+                value={urlValue}
+                onChange={(e) => setUrlValue(e.target.value)}
+                className="flex-1 px-3 py-2 text-sm rounded-md border outline-none transition-colors"
+                style={{
+                  backgroundColor: "var(--background)",
+                  borderColor: "var(--border)",
+                  color: "var(--foreground)",
+                  borderRadius: "var(--radius-sm)",
+                }}
+              />
+              <button
+                type="button"
+                onClick={handleExtractUrl}
+                disabled={!urlValue || extractingUrl}
+                className="px-3 py-2 text-xs font-medium rounded-md transition-all disabled:opacity-40"
+                style={{
+                  backgroundColor: "var(--primary)",
+                  color: "var(--primary-foreground)",
+                  borderRadius: "var(--radius-sm)",
+                }}
+              >
+                {extractingUrl ? <Loader2 className="w-3 h-3 animate-spin" /> : "Extract"}
+              </button>
+            </div>
+            {urlExtracted && (
+              <div className="mt-2 flex items-center gap-1.5">
+                <div className="w-2 h-2 rounded-full" style={{ backgroundColor: "var(--ring)" }} />
+                <p className="text-[10px]" style={{ color: "var(--muted-foreground)" }}>
+                  Extracted {inputs.extractedColors?.length || 0} colors, {inputs.extractedFonts?.length || 0} fonts
+                </p>
+              </div>
+            )}
+            {extractError && inputMethod === "url" && (
+              <p className="text-[10px] mt-1.5" style={{ color: "var(--destructive)" }}>
+                {extractError}
+              </p>
+            )}
+            {!urlExtracted && !extractError && (
+              <p className="text-[10px] mt-1.5" style={{ color: "var(--muted-foreground)" }}>
+                We will extract colors and fonts from the public HTML.
+              </p>
+            )}
           </div>
         )}
 
@@ -203,14 +312,89 @@ export function ChatPanel({ generationState, onGenerate }: ChatPanelProps) {
           <div
             className="rounded-lg border-2 border-dashed p-6 mb-3 text-center cursor-pointer hover:opacity-80 transition-opacity"
             style={{ borderColor: "var(--border)", borderRadius: "var(--radius)" }}
+            onClick={() => fileInputRef.current?.click()}
           >
-            <ImageIcon className="w-8 h-8 mx-auto mb-2" style={{ color: "var(--muted-foreground)" }} />
-            <p className="text-xs font-medium" style={{ color: "var(--foreground)" }}>
-              Drop your logo here
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/png,image/jpeg,image/webp"
+              className="hidden"
+              onChange={handleLogoUpload}
+            />
+            {extractingLogo ? (
+              <>
+                <Loader2 className="w-8 h-8 mx-auto mb-2 animate-spin" style={{ color: "var(--primary)" }} />
+                <p className="text-xs font-medium" style={{ color: "var(--foreground)" }}>
+                  Extracting colors...
+                </p>
+              </>
+            ) : logoExtracted ? (
+              <>
+                <Upload className="w-8 h-8 mx-auto mb-2" style={{ color: "var(--primary)" }} />
+                <p className="text-xs font-medium" style={{ color: "var(--foreground)" }}>
+                  {logoFileName}
+                </p>
+                <p className="text-[10px] mt-1" style={{ color: "var(--muted-foreground)" }}>
+                  Extracted {inputs.extractedColors?.length || 0} brand colors
+                </p>
+                {inputs.extractedColors && inputs.extractedColors.length > 0 && (
+                  <div className="flex justify-center gap-1 mt-2">
+                    {inputs.extractedColors.slice(0, 6).map((c) => (
+                      <div
+                        key={c}
+                        className="w-5 h-5 rounded-full border"
+                        style={{ backgroundColor: c, borderColor: "var(--border)" }}
+                        title={c}
+                      />
+                    ))}
+                  </div>
+                )}
+              </>
+            ) : (
+              <>
+                <ImageIcon className="w-8 h-8 mx-auto mb-2" style={{ color: "var(--muted-foreground)" }} />
+                <p className="text-xs font-medium" style={{ color: "var(--foreground)" }}>
+                  Drop your logo here
+                </p>
+                <p className="text-[10px] mt-1" style={{ color: "var(--muted-foreground)" }}>
+                  PNG, JPG, or WebP. We will extract your brand colors.
+                </p>
+                {extractError && (
+                  <p className="text-[10px] mt-2" style={{ color: "var(--destructive)" }}>
+                    {extractError}
+                  </p>
+                )}
+              </>
+            )}
+          </div>
+        )}
+
+        {/* Extracted colors preview (show for both URL and logo) */}
+        {inputs.extractedColors && inputs.extractedColors.length > 0 && inputMethod === "url" && (
+          <div
+            className="rounded-lg border p-3 mb-3"
+            style={{ borderColor: "var(--border)", backgroundColor: "var(--card)", borderRadius: "var(--radius)" }}
+          >
+            <p className="text-[10px] uppercase tracking-[0.15em] font-medium mb-2" style={{ color: "var(--muted-foreground)" }}>
+              Extracted colors
             </p>
-            <p className="text-[10px] mt-1" style={{ color: "var(--muted-foreground)" }}>
-              PNG, SVG, or JPG. We'll extract your brand colors.
-            </p>
+            <div className="flex flex-wrap gap-1.5">
+              {inputs.extractedColors.map((c) => (
+                <button
+                  key={c}
+                  type="button"
+                  onClick={() => update("brandColor", c)}
+                  className="w-7 h-7 rounded-md border transition-transform hover:scale-110"
+                  style={{
+                    backgroundColor: c,
+                    borderColor: inputs.brandColor === c ? "var(--primary)" : "var(--border)",
+                    borderWidth: inputs.brandColor === c ? "2px" : "1px",
+                    borderRadius: "var(--radius-sm)",
+                  }}
+                  title={c}
+                />
+              ))}
+            </div>
           </div>
         )}
 
@@ -293,14 +477,22 @@ export function ChatPanel({ generationState, onGenerate }: ChatPanelProps) {
           onToggle={() => setExpandedStep(expandedStep === 3 ? 0 : 3)}
         >
           <div className="flex items-center gap-2">
-            <div
-              className="w-8 h-8 rounded-md border shrink-0"
+            <label
+              className="w-8 h-8 rounded-md border shrink-0 overflow-hidden cursor-pointer"
               style={{
                 backgroundColor: inputs.brandColor || "var(--muted)",
                 borderColor: "var(--border)",
                 borderRadius: "var(--radius-sm)",
               }}
-            />
+            >
+              <input
+                type="color"
+                value={/^#[0-9a-fA-F]{6}$/.test(inputs.brandColor) ? inputs.brandColor : "#3b82f6"}
+                onChange={(e) => update("brandColor", e.target.value)}
+                className="w-full h-full opacity-0 cursor-pointer"
+                aria-label="Pick brand color"
+              />
+            </label>
             <input
               type="text"
               placeholder="#000000"
@@ -476,6 +668,20 @@ export function ChatPanel({ generationState, onGenerate }: ChatPanelProps) {
 
       {/* Generate button */}
       <div className="shrink-0 p-4 border-t" style={{ borderColor: "var(--border)" }}>
+        {generationError && (
+          <div
+            className="flex items-center gap-2 mb-3 p-2 rounded-md text-xs"
+            style={{
+              backgroundColor: "var(--destructive)",
+              color: "var(--destructive-foreground)",
+              borderRadius: "var(--radius-sm)",
+              opacity: 0.9,
+            }}
+          >
+            <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+            <span className="truncate">{generationError}</span>
+          </div>
+        )}
         <button
           type="button"
           onClick={handleGenerate}
@@ -519,7 +725,7 @@ export function ChatPanel({ generationState, onGenerate }: ChatPanelProps) {
   );
 }
 
-/* ── Step Card ── */
+/* -- Step Card -- */
 
 function StepCard({
   step,

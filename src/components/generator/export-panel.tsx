@@ -1,8 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { Download, Check, Palette, Type, Hash } from "lucide-react";
+import { Download, Check, Palette, Type, Hash, Loader2 } from "lucide-react";
+import { toast } from "sonner";
 import { useThemeTokens } from "@/providers/theme-token-provider";
+import { buildAndDownloadZip } from "@/lib/export/zip-builder";
+import { countTokens } from "@/lib/tokens/count";
 import type { DesignTokens } from "@/lib/tokens/types";
 
 const FORMATS = [
@@ -25,6 +28,7 @@ export function ExportPanel({ generationState, generatedTokens }: ExportPanelPro
   );
   const [systemName, setSystemName] = useState("");
   const [previewFormat, setPreviewFormat] = useState<string>("dtcg");
+  const [downloading, setDownloading] = useState(false);
 
   const displayName = systemName || t.meta.name;
 
@@ -37,11 +41,7 @@ export function ExportPanel({ generationState, generatedTokens }: ExportPanelPro
     });
   };
 
-  // Count tokens
-  const colorCount = Object.keys(t.colors).length * 11; // 8 scales * 11 shades
-  const semanticCount = Object.keys(t.semantic).length;
-  const typoCount = Object.keys(t.typography.scale).length + 3; // scale + 3 families
-  const totalCount = colorCount + semanticCount + typoCount + 7 + 7 + 3; // radius + shadows + animation
+  const { colors: colorCount, typography: typoCount, total: totalCount } = countTokens(t);
 
   if (generationState !== "complete") {
     return (
@@ -67,6 +67,18 @@ export function ExportPanel({ generationState, generatedTokens }: ExportPanelPro
       </div>
     );
   }
+
+  const handleDownload = async () => {
+    setDownloading(true);
+    try {
+      await buildAndDownloadZip(t, selectedFormats, displayName);
+    } catch (err) {
+      console.error("Download failed:", err);
+      toast.error("Could not build the ZIP. Try again.");
+    } finally {
+      setDownloading(false);
+    }
+  };
 
   const getPreviewCode = (): string => {
     const s = t.semantic;
@@ -223,7 +235,7 @@ export function ExportPanel({ generationState, generatedTokens }: ExportPanelPro
           </p>
           <div className="grid grid-cols-3 gap-2">
             {[
-              { icon: Palette, label: "Colors", count: colorCount + semanticCount },
+              { icon: Palette, label: "Colors", count: colorCount },
               { icon: Type, label: "Typography", count: typoCount },
               { icon: Hash, label: "Total", count: totalCount },
             ].map((stat) => (
@@ -251,8 +263,8 @@ export function ExportPanel({ generationState, generatedTokens }: ExportPanelPro
       <div className="shrink-0 p-4 border-t" style={{ borderColor: "var(--border)" }}>
         <button
           type="button"
-          onClick={() => alert("Export coming soon — ZIP generation will be wired next.")}
-          disabled={selectedFormats.size === 0}
+          onClick={handleDownload}
+          disabled={selectedFormats.size === 0 || downloading}
           className="w-full py-3 rounded-lg text-sm font-semibold flex items-center justify-center gap-2 transition-all hover:opacity-90 disabled:opacity-40"
           style={{
             backgroundColor: "var(--primary)",
@@ -260,8 +272,17 @@ export function ExportPanel({ generationState, generatedTokens }: ExportPanelPro
             borderRadius: "var(--radius)",
           }}
         >
-          <Download className="w-4 h-4" />
-          Download ZIP
+          {downloading ? (
+            <>
+              <Loader2 className="w-4 h-4 animate-spin" />
+              Packaging...
+            </>
+          ) : (
+            <>
+              <Download className="w-4 h-4" />
+              Download ZIP
+            </>
+          )}
         </button>
         <p
           className="text-[10px] text-center mt-2"

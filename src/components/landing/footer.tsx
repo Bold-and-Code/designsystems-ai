@@ -29,26 +29,24 @@ export function Footer() {
 
         <div className="flex items-center gap-6">
           <Link
-            href="https://github.com"
-            target="_blank"
+            href="/privacy"
             className="text-xs font-medium transition-opacity hover:opacity-70"
             style={{ color: "var(--muted-foreground)" }}
           >
-            GitHub
+            Privacy
           </Link>
           <Link
-            href="https://x.com"
-            target="_blank"
+            href="/terms"
             className="text-xs font-medium transition-opacity hover:opacity-70"
             style={{ color: "var(--muted-foreground)" }}
           >
-            X / Twitter
+            Terms
           </Link>
           <span
             className="text-xs"
             style={{ color: "var(--muted-foreground)" }}
           >
-            {new Date().getFullYear()} Bold & Code, Inc.
+            {new Date().getFullYear()} Bold & Code
           </span>
         </div>
       </div>

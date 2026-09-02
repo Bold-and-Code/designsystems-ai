@@ -6,9 +6,8 @@ import { cn } from "@/lib/utils";
 import { ThemeSwitcher } from "./theme-switcher";
 
 const NAV_LINKS = [
-  { label: "How", href: "#how-it-works" },
-  { label: "Formats", href: "#formats" },
-  { label: "Generate", href: "/generator" },
+  { label: "How", href: "/#how-it-works" },
+  { label: "Formats", href: "/#formats" },
 ];
 
 export function Header() {
@@ -46,7 +45,7 @@ export function Header() {
         </Link>
 
         {/* Right side: nav + theme switcher */}
-        <div className="flex items-center gap-8">
+        <div className="flex items-center gap-4 sm:gap-8">
           <nav className="hidden md:flex items-center gap-6">
             {NAV_LINKS.map((link) => (
               <Link
@@ -63,6 +62,18 @@ export function Header() {
           <div className="hidden sm:block w-px h-5" style={{ backgroundColor: "var(--border)" }} />
 
           <ThemeSwitcher className="hidden sm:flex" />
+
+          <Link
+            href="/generator"
+            className="text-sm font-semibold px-3 py-1.5 rounded-md"
+            style={{
+              backgroundColor: "var(--primary)",
+              color: "var(--primary-foreground)",
+              borderRadius: "var(--radius-sm)",
+            }}
+          >
+            Generate
+          </Link>
         </div>
       </div>
     </header>

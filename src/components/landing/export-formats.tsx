@@ -99,33 +99,7 @@ function useLiveCode(formatId: FormatId) {
 }
 
 function SyntaxLine({ line }: { line: string }) {
-  // Light syntax coloring via regex
-  const parts: React.ReactNode[] = [];
-  let remaining = line;
-  let key = 0;
-
-  // Match patterns in order of priority
-  const patterns: Array<{ regex: RegExp; style: string }> = [
-    // Quoted strings (hex values, font names)
-    { regex: /"(#[0-9a-fA-F]{3,8})"/, style: "var(--accent-foreground)" },
-    { regex: /"([^"]*)"/, style: "color: #e9967a" }, // warm string color
-    // JSON keys before colon
-    { regex: /^(\s*"[\w.$-]+")\s*:/, style: "var(--primary)" },
-    // CSS property names
-    { regex: /^(\s*--[\w-]+)\s*:/, style: "var(--primary)" },
-    // CSS @rules
-    { regex: /^(@\w+)/, style: "var(--primary)" },
-    // $type/$value keys
-    { regex: /("\$\w+")/, style: "var(--primary)" },
-  ];
-
-  // Simplified: just color the whole line based on content
-  const isComment = remaining.trim().startsWith("/*") || remaining.trim().startsWith("//");
-  const isKey =
-    remaining.includes('":') ||
-    remaining.trim().startsWith("--") ||
-    remaining.trim().startsWith("@");
-
+  const isComment = line.trim().startsWith("/*") || line.trim().startsWith("//");
   if (isComment) {
     return (
       <span style={{ color: "var(--muted-foreground)", opacity: 0.6 }}>
@@ -134,12 +108,10 @@ function SyntaxLine({ line }: { line: string }) {
     );
   }
 
-  // Split on colon for key:value coloring
-  const colonIdx = remaining.indexOf(":");
-  if (colonIdx > -1 && !remaining.trim().startsWith("{") && !remaining.trim().startsWith("}")) {
-    const keyPart = remaining.slice(0, colonIdx);
-    const valuePart = remaining.slice(colonIdx);
-
+  const colonIdx = line.indexOf(":");
+  if (colonIdx > -1 && !line.trim().startsWith("{") && !line.trim().startsWith("}")) {
+    const keyPart = line.slice(0, colonIdx);
+    const valuePart = line.slice(colonIdx);
     return (
       <>
         <span style={{ color: "var(--primary)" }}>{keyPart}</span>
@@ -151,7 +123,6 @@ function SyntaxLine({ line }: { line: string }) {
     );
   }
 
-  // Brackets and other structural chars
   return (
     <span style={{ color: "var(--muted-foreground)" }}>{line}</span>
   );

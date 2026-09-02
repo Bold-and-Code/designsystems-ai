@@ -6,6 +6,16 @@ import {
   DEFAULT_RADIUS,
   DEFAULT_TYPOGRAPHY_SCALE,
   DEFAULT_WEIGHTS,
+  DEFAULT_BREAKPOINTS,
+  DEFAULT_ZINDEX,
+  DEFAULT_OPACITY,
+  DEFAULT_BORDER_WIDTH,
+  DEFAULT_LETTER_SPACING,
+  DEFAULT_LINE_HEIGHT,
+  DEFAULT_COMPONENTS,
+  DEFAULT_TYPOGRAPHY_USAGE,
+  DEFAULT_FOCUS,
+  DEFAULT_SECTION_SPACING,
 } from "./defaults";
 
 // Helper to build a full DesignTokens from partial overrides
@@ -17,6 +27,16 @@ function makeTokens(
     animation: DEFAULT_ANIMATION,
     shadows: partial.shadows ?? DEFAULT_SHADOWS,
     borderRadius: partial.borderRadius ?? DEFAULT_RADIUS,
+    breakpoints: DEFAULT_BREAKPOINTS,
+    zIndex: DEFAULT_ZINDEX,
+    opacity: DEFAULT_OPACITY,
+    borderWidth: DEFAULT_BORDER_WIDTH,
+    letterSpacing: DEFAULT_LETTER_SPACING,
+    lineHeight: DEFAULT_LINE_HEIGHT,
+    components: DEFAULT_COMPONENTS,
+    typographyUsage: DEFAULT_TYPOGRAPHY_USAGE,
+    focus: DEFAULT_FOCUS,
+    sectionSpacing: DEFAULT_SECTION_SPACING,
     ...partial,
   };
 }

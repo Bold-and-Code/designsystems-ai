@@ -64,7 +64,7 @@ export function CtaBanner() {
             className="mt-4 text-xs opacity-60"
             style={{ color: "var(--primary-foreground)" }}
           >
-            No account required.
+            Public beta. No account required.
           </p>
         </div>
       </motion.div>

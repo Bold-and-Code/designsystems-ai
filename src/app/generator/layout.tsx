@@ -1,31 +1,24 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, SlidersHorizontal, Eye, Download } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { GeneratorUIProvider, useGeneratorUI, type GeneratorTab } from "@/providers/generator-ui-provider";
 
 const MOBILE_TABS = [
   { id: "input", label: "Input", icon: SlidersHorizontal },
   { id: "preview", label: "Preview", icon: Eye },
   { id: "export", label: "Export", icon: Download },
-] as const;
+] as const satisfies ReadonlyArray<{ id: GeneratorTab; label: string; icon: typeof Eye }>;
 
-type MobileTab = (typeof MOBILE_TABS)[number]["id"];
-
-export default function GeneratorLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
-  const [mobileTab, setMobileTab] = useState<MobileTab>("input");
+function GeneratorShell({ children }: { children: React.ReactNode }) {
+  const { tab, setTab } = useGeneratorUI();
 
   return (
     <div
       className="h-screen flex flex-col overflow-hidden"
       style={{ backgroundColor: "var(--background)" }}
     >
-      {/* Top bar */}
       <div
         className="shrink-0 h-12 flex items-center justify-between px-4 border-b"
         style={{ borderColor: "var(--border)", backgroundColor: "var(--card)" }}
@@ -44,53 +37,60 @@ export default function GeneratorLayout({
           />
           <Link
             href="/"
-            className="hidden sm:flex items-center gap-1.5 text-xs transition-opacity hover:opacity-70"
+            className="flex items-center gap-1.5 text-xs transition-opacity hover:opacity-70"
             style={{ color: "var(--muted-foreground)" }}
           >
             <ArrowLeft className="w-3 h-3" />
-            Back to home
+            <span className="hidden sm:inline">Back to home</span>
+            <span className="sm:hidden">Home</span>
           </Link>
         </div>
         <p
           className="text-xs font-medium"
           style={{ color: "var(--muted-foreground)" }}
         >
-          Design System Generator
+          Generator
         </p>
       </div>
 
-      {/* Mobile tab bar */}
       <div
         className="shrink-0 lg:hidden flex border-b"
         style={{ borderColor: "var(--border)", backgroundColor: "var(--card)" }}
       >
-        {MOBILE_TABS.map((tab) => (
+        {MOBILE_TABS.map((item) => (
           <button
-            key={tab.id}
+            key={item.id}
             type="button"
-            onClick={() => setMobileTab(tab.id)}
+            onClick={() => setTab(item.id)}
             className={cn(
-              "flex-1 flex items-center justify-center gap-2 py-2.5 text-xs font-medium transition-all border-b-2",
+              "flex-1 flex items-center justify-center gap-2 py-2.5 text-xs font-medium border-b-2"
             )}
             style={{
-              borderColor:
-                mobileTab === tab.id ? "var(--primary)" : "transparent",
-              color:
-                mobileTab === tab.id
-                  ? "var(--foreground)"
-                  : "var(--muted-foreground)",
+              borderColor: tab === item.id ? "var(--primary)" : "transparent",
+              color: tab === item.id ? "var(--foreground)" : "var(--muted-foreground)",
             }}
           >
-            <tab.icon className="w-3.5 h-3.5" />
-            {tab.label}
+            <item.icon className="w-3.5 h-3.5" />
+            {item.label}
           </button>
         ))}
       </div>
 
-      {/* Panel container */}
-      <div className="flex-1 flex overflow-hidden" data-mobile-tab={mobileTab}>
+      <div className="flex-1 flex overflow-hidden" data-mobile-tab={tab}>
         {children}
       </div>
     </div>
+  );
+}
+
+export default function GeneratorLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <GeneratorUIProvider>
+      <GeneratorShell>{children}</GeneratorShell>
+    </GeneratorUIProvider>
   );
 }

@@ -175,6 +175,181 @@ export interface AnimationConfig {
   };
 }
 
+// --- Breakpoints ---
+
+export interface BreakpointsConfig {
+  sm: string;
+  md: string;
+  lg: string;
+  xl: string;
+  "2xl": string;
+}
+
+// --- Z-Index ---
+
+export interface ZIndexConfig {
+  hide: number;
+  base: number;
+  dropdown: number;
+  sticky: number;
+  overlay: number;
+  modal: number;
+  popover: number;
+  toast: number;
+  tooltip: number;
+}
+
+// --- Opacity ---
+
+export interface OpacityConfig {
+  0: number;
+  5: number;
+  10: number;
+  20: number;
+  25: number;
+  30: number;
+  40: number;
+  50: number;
+  60: number;
+  70: number;
+  75: number;
+  80: number;
+  90: number;
+  95: number;
+  100: number;
+}
+
+// --- Border Width ---
+
+export interface BorderWidthConfig {
+  none: string;
+  thin: string;
+  default: string;
+  thick: string;
+  heavy: string;
+}
+
+// --- Letter Spacing ---
+
+export interface LetterSpacingConfig {
+  tightest: string; // display headings
+  tighter: string;  // h1-h2
+  tight: string;    // h3-h4
+  normal: string;   // body
+  wide: string;     // labels
+  wider: string;    // all-caps
+  widest: string;   // micro text
+}
+
+// --- Line Height ---
+
+export interface LineHeightConfig {
+  none: number;
+  tight: number;     // display/h1
+  snug: number;      // h2-h4
+  normal: number;    // body
+  relaxed: number;   // body generous
+  loose: number;     // captions
+}
+
+// --- Component Tokens ---
+
+export interface ComponentTokens {
+  button: {
+    heightSm: string;
+    heightMd: string;
+    heightLg: string;
+    paddingX: string;
+    paddingXSm: string;
+    fontSize: string;
+    fontSizeSm: string;
+    fontWeight: number;
+    letterSpacing: string;
+    textTransform: string;
+    borderRadius: string;
+    transition: string;
+    hoverTransform: string;
+  };
+  card: {
+    padding: string;
+    paddingSm: string;
+    borderRadius: string;
+    borderWidth: string;
+  };
+  input: {
+    height: string;
+    paddingX: string;
+    fontSize: string;
+    borderRadius: string;
+    borderWidth: string;
+  };
+  badge: {
+    paddingX: string;
+    paddingY: string;
+    fontSize: string;
+    fontWeight: number;
+    borderRadius: string;
+    letterSpacing: string;
+    textTransform: string;
+  };
+  avatar: {
+    sizeSm: string;
+    sizeMd: string;
+    sizeLg: string;
+    borderRadius: string;
+  };
+}
+
+// --- Typography Usage (per-element rules) ---
+
+export interface TypographyUsageRule {
+  weight: number;
+  size: string;
+  lineHeight: number;
+  letterSpacing: string;
+  textTransform?: string;
+}
+
+export interface TypographyUsage {
+  display: TypographyUsageRule;
+  h1: TypographyUsageRule;
+  h2: TypographyUsageRule;
+  h3: TypographyUsageRule;
+  h4: TypographyUsageRule;
+  h5: TypographyUsageRule;
+  h6: TypographyUsageRule;
+  body: TypographyUsageRule;
+  bodyLarge: TypographyUsageRule;
+  bodySmall: TypographyUsageRule;
+  caption: TypographyUsageRule;
+  button: TypographyUsageRule;
+  label: TypographyUsageRule;
+  overline: TypographyUsageRule;
+}
+
+// --- Focus / Interaction ---
+
+export interface FocusConfig {
+  ringWidth: string;
+  ringOffset: string;
+  ringColor: string;
+  outlineStyle: string;
+}
+
+// --- Section Spacing (responsive) ---
+
+export interface SectionSpacing {
+  paddingSm: string;
+  paddingMd: string;
+  paddingLg: string;
+  paddingSmTablet: string;
+  paddingMdTablet: string;
+  paddingLgTablet: string;
+  paddingSmMobile: string;
+  paddingMdMobile: string;
+  paddingLgMobile: string;
+}
+
 // --- The Complete Design Token Set ---
 
 export interface DesignTokens {
@@ -208,6 +383,26 @@ export interface DesignTokens {
   spacing: SpacingConfig;
 
   animation: AnimationConfig;
+
+  breakpoints: BreakpointsConfig;
+
+  zIndex: ZIndexConfig;
+
+  opacity: OpacityConfig;
+
+  borderWidth: BorderWidthConfig;
+
+  letterSpacing: LetterSpacingConfig;
+
+  lineHeight: LineHeightConfig;
+
+  components: ComponentTokens;
+
+  typographyUsage: TypographyUsage;
+
+  focus: FocusConfig;
+
+  sectionSpacing: SectionSpacing;
 }
 
 // --- Google Font Reference ---
